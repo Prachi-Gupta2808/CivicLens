@@ -5,12 +5,28 @@ const User = require("../models/User");
 // Private (citizen only)
 const submitComplaint = async (req, res) => {
   try {
-    const { description, category, coordinates, address, isAIGenerated } =
-      req.body;
+    const { description, category, address, isAIGenerated } = req.body;
+    let coordinates;
+    try {
+      coordinates = JSON.parse(req.body.coordinates);
+    } catch (e) {
+      return res
+        .status(400)
+        .json({
+          message: "Invalid coordinates format. Send as [longitude, latitude]",
+        });
+    }
 
     // check required fields
     if (!description || !category || !coordinates) {
       return res.status(400).json({ message: "Please fill all fields" });
+    }
+
+    // validate coordinates
+    if (!Array.isArray(coordinates) || coordinates.length !== 2) {
+      return res
+        .status(400)
+        .json({ message: "Coordinates must be [longitude, latitude]" });
     }
 
     // check if photo was uploaded
@@ -26,9 +42,9 @@ const submitComplaint = async (req, res) => {
         $near: {
           $geometry: {
             type: "Point",
-            coordinates: coordinates, // [longitude, latitude]
+            coordinates: coordinates,
           },
-          $maxDistance: 50, // 50 metres radius
+          $maxDistance: 50,
         },
       },
     });
@@ -78,7 +94,6 @@ const submitComplaint = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
 // @route   GET /api/complaints
 // Private (fixer only)
 const getAllComplaints = async (req, res) => {

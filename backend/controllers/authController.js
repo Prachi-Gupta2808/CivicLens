@@ -119,4 +119,10 @@ const getMe = async (req, res) => {
   }
 };
 
-module.exports = { register, login, getMe };
+// @route   POST /api/auth/logout
+// Private
+const logout = (req, res) => {
+  res.status(200).json({ message: "Logged out successfully" });
+};
+
+module.exports = { register, login, getMe, logout };
