@@ -1,40 +1,76 @@
 const Complaint = require("../models/Complaint");
 const User = require("../models/User");
+const { analyzeImage } = require("../utils/mlService");
+
+// @route   POST /api/complaints/analyze
+// Private (citizen only)
+const analyzeComplaint = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "Please upload a photo" });
+    }
+
+    // req.file.path is the Cloudinary URL
+    const mlResult = await analyzeImage(req.file.path);
+
+    if (!mlResult.success) {
+      return res.status(503).json({
+        message: "ML service unavailable. Please try again.",
+      });
+    }
+
+    if (mlResult.label === "normal") {
+      return res.status(400).json({
+        message:
+          "This does not appear to be a civic issue. Please upload a relevant photo.",
+      });
+    }
+
+    res.status(200).json({
+      label: mlResult.label,
+      confidence: mlResult.confidence,
+      description: mlResult.description,
+      photoUrl: req.file.path, // cloudinary URL for frontend preview
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
 
 // @route   POST /api/complaints
 // Private (citizen only)
 const submitComplaint = async (req, res) => {
   try {
-    const { description, category, address, isAIGenerated } = req.body;
+    const { address, description, category, photoUrl } = req.body;
+
     let coordinates;
     try {
       coordinates = JSON.parse(req.body.coordinates);
     } catch (e) {
-      return res
-        .status(400)
-        .json({
-          message: "Invalid coordinates format. Send as [longitude, latitude]",
-        });
+      return res.status(400).json({ message: "Invalid coordinates format" });
     }
 
-    // check required fields
-    if (!description || !category || !coordinates) {
-      return res.status(400).json({ message: "Please fill all fields" });
-    }
-
-    // validate coordinates
-    if (!Array.isArray(coordinates) || coordinates.length !== 2) {
+    if (
+      !coordinates ||
+      !Array.isArray(coordinates) ||
+      coordinates.length !== 2
+    ) {
       return res
         .status(400)
         .json({ message: "Coordinates must be [longitude, latitude]" });
     }
 
-    // check if photo was uploaded
-    if (!req.file) {
-      return res.status(400).json({ message: "Please upload a photo" });
+    if (!description || !category) {
+      return res
+        .status(400)
+        .json({ message: "Description and category are required" });
     }
 
-    // check if same issue exists within 50 metres
+    if (!photoUrl) {
+      return res.status(400).json({ message: "Photo URL is required" });
+    }
+
+    // geo deduplication
     const nearbyComplaint = await Complaint.findOne({
       status: { $ne: "fixed" },
       category,
@@ -42,16 +78,14 @@ const submitComplaint = async (req, res) => {
         $near: {
           $geometry: {
             type: "Point",
-            coordinates: coordinates,
+            coordinates,
           },
           $maxDistance: 50,
         },
       },
     });
 
-    // if nearby complaint exists then increment raise count
     if (nearbyComplaint) {
-      // check if this user already raised this issue
       const alreadyRaised = nearbyComplaint.raisedBy.includes(req.user.id);
       if (alreadyRaised) {
         return res
@@ -59,8 +93,7 @@ const submitComplaint = async (req, res) => {
           .json({ message: "You have already reported this issue" });
       }
 
-      // add new photo and increment raise count
-      nearbyComplaint.photos.push(req.file.path);
+      nearbyComplaint.photos.push(photoUrl);
       nearbyComplaint.raiseCount += 1;
       nearbyComplaint.raisedBy.push(req.user.id);
       await nearbyComplaint.save();
@@ -71,18 +104,17 @@ const submitComplaint = async (req, res) => {
       });
     }
 
-    // no nearby complaint then create new
     const complaint = await Complaint.create({
       reportedBy: req.user.id,
       description,
       category,
-      isAIGenerated: isAIGenerated || false,
+      isAIGenerated: true,
       location: {
         type: "Point",
         coordinates,
         address: address || null,
       },
-      photos: [req.file.path],
+      photos: [photoUrl], // cloudinary URL from analyze step
       raisedBy: [req.user.id],
     });
 
@@ -100,7 +132,6 @@ const getAllComplaints = async (req, res) => {
   try {
     const { status, category, page = 1, limit = 10 } = req.query;
 
-    // build filter object dynamically
     const filter = {};
     if (status) filter.status = status;
     if (category) filter.category = category;
@@ -108,7 +139,7 @@ const getAllComplaints = async (req, res) => {
     const complaints = await Complaint.find(filter)
       .populate("reportedBy", "name email aadhaar.last4")
       .populate("fixedBy", "name email")
-      .sort({ raiseCount: -1, createdAt: -1 }) // highest raise count first
+      .sort({ raiseCount: -1, createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(Number(limit));
 
@@ -154,14 +185,12 @@ const markAsFixed = async (req, res) => {
       return res.status(404).json({ message: "Complaint not found" });
     }
 
-    // check if already fixed
     if (complaint.status === "fixed") {
       return res
         .status(400)
         .json({ message: "Complaint is already marked as fixed" });
     }
 
-    // after photo is required to mark as fixed
     if (!req.file) {
       return res
         .status(400)
@@ -219,7 +248,6 @@ const reportAsFalse = async (req, res) => {
       return res.status(404).json({ message: "Complaint not found" });
     }
 
-    // check if already reported as false by this user
     const alreadyReported = complaint.reportedAsFalse.includes(req.user.id);
     if (alreadyReported) {
       return res
@@ -227,11 +255,10 @@ const reportAsFalse = async (req, res) => {
         .json({ message: "You have already reported this complaint" });
     }
 
-    // add user to reportedAsFalse array
     complaint.reportedAsFalse.push(req.user.id);
     await complaint.save();
 
-    // block the original uploader
+    // one strike policy — block the uploader
     await User.findByIdAndUpdate(complaint.reportedBy, { isBlocked: true });
 
     res.status(200).json({
@@ -243,13 +270,13 @@ const reportAsFalse = async (req, res) => {
 };
 
 // @route   GET /api/complaints/map
-// Private (fixer only)
+// Private (both citizen and fixer)
 const getMapData = async (req, res) => {
   try {
-    // fetch all open and in-progress complaints for the heatmap
     const complaints = await Complaint.find({
       status: { $ne: "fixed" },
     }).select("location category raiseCount status");
+
     res.status(200).json({ complaints });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
@@ -257,6 +284,7 @@ const getMapData = async (req, res) => {
 };
 
 module.exports = {
+  analyzeComplaint,
   submitComplaint,
   getAllComplaints,
   getComplaintById,
