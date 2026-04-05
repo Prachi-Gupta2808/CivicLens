@@ -3,12 +3,13 @@ const router = express.Router();
 const {
   submitComplaint,
   getAllComplaints,
-  getComplaintById,
   markAsFixed,
   markAsInProgress,
   reportAsFalse,
   getMapData,
   analyzeComplaint,
+  getMyComplaints,
+  getMyTasks,
 } = require("../controllers/complaintController");
 const {
   protect,
@@ -17,18 +18,15 @@ const {
 } = require("../middleware/authMiddleware");
 const { handleUpload } = require("../middleware/uploadMiddleware");
 
-// citizen routes
+router.post("/analyze", protect, citizenOnly, handleUpload, analyzeComplaint);
+router.get("/map", getMapData);
+router.get("/my-reports", protect, citizenOnly, getMyComplaints);
+router.get("/my-tasks", protect, fixerOnly, getMyTasks);
+router.get("/", protect, fixerOnly, getAllComplaints);
 router.post("/", protect, citizenOnly, submitComplaint);
 
-// fixer routes
-router.get("/", protect, fixerOnly, getAllComplaints);
-router.get("/map", protect, getMapData);
+router.patch("/:id/status", protect, fixerOnly, markAsInProgress); // ← fixed name
 router.patch("/:id/fix", protect, fixerOnly, handleUpload, markAsFixed);
-router.patch("/:id/inprogress", protect, fixerOnly, markAsInProgress);
-router.post("/analyze", protect, citizenOnly, handleUpload, analyzeComplaint);
-
-// both citizen and fixer
-router.get("/:id", protect, getComplaintById);
-router.patch("/:id/report", protect, reportAsFalse);
+router.patch("/:id/report", protect, fixerOnly, reportAsFalse);
 
 module.exports = router;

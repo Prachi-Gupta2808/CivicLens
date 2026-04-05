@@ -3,14 +3,12 @@ const User = require("../models/User");
 const { analyzeImage } = require("../utils/mlService");
 
 // @route   POST /api/complaints/analyze
-// Private (citizen only)
 const analyzeComplaint = async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: "Please upload a photo" });
     }
 
-    // req.file.path is the Cloudinary URL
     const mlResult = await analyzeImage(req.file.path);
 
     if (!mlResult.success) {
@@ -30,7 +28,7 @@ const analyzeComplaint = async (req, res) => {
       label: mlResult.label,
       confidence: mlResult.confidence,
       description: mlResult.description,
-      photoUrl: req.file.path, // cloudinary URL for frontend preview
+      photoUrl: req.file.path,
     });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
@@ -38,11 +36,9 @@ const analyzeComplaint = async (req, res) => {
 };
 
 // @route   POST /api/complaints
-// Private (citizen only)
 const submitComplaint = async (req, res) => {
   try {
     const { address, description, category, photoUrl } = req.body;
-
     let coordinates;
     try {
       coordinates = JSON.parse(req.body.coordinates);
@@ -70,16 +66,12 @@ const submitComplaint = async (req, res) => {
       return res.status(400).json({ message: "Photo URL is required" });
     }
 
-    // geo deduplication
     const nearbyComplaint = await Complaint.findOne({
       status: { $ne: "fixed" },
       category,
       location: {
         $near: {
-          $geometry: {
-            type: "Point",
-            coordinates,
-          },
+          $geometry: { type: "Point", coordinates },
           $maxDistance: 50,
         },
       },
@@ -114,7 +106,7 @@ const submitComplaint = async (req, res) => {
         coordinates,
         address: address || null,
       },
-      photos: [photoUrl], // cloudinary URL from analyze step
+      photos: [photoUrl],
       raisedBy: [req.user.id],
     });
 
@@ -126,12 +118,11 @@ const submitComplaint = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 // @route   GET /api/complaints
-// Private (fixer only)
 const getAllComplaints = async (req, res) => {
   try {
     const { status, category, page = 1, limit = 10 } = req.query;
-
     const filter = {};
     if (status) filter.status = status;
     if (category) filter.category = category;
@@ -156,27 +147,56 @@ const getAllComplaints = async (req, res) => {
   }
 };
 
-// @route   GET /api/complaints/:id
-// Private
-const getComplaintById = async (req, res) => {
+// @route   GET /api/complaints/my-reports
+const getMyComplaints = async (req, res) => {
   try {
-    const complaint = await Complaint.findById(req.params.id)
-      .populate("reportedBy", "name email aadhaar.last4")
-      .populate("fixedBy", "name email")
-      .populate("raisedBy", "name email");
+    const complaints = await Complaint.find({ reportedBy: req.user.id }).sort({
+      createdAt: -1,
+    });
 
-    if (!complaint) {
-      return res.status(404).json({ message: "Complaint not found" });
-    }
-
-    res.status(200).json({ complaint });
+    const stats = {
+      total: complaints.length,
+      pending: complaints.filter((c) => c.status === "pending").length,
+      inProgress: complaints.filter((c) => c.status === "in-progress").length,
+      resolved: complaints.filter((c) => c.status === "fixed").length,
+    };
+    res.status(200).json({
+      success: true,
+      stats,
+      complaints,
+    });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({
+      message: "Server error while fetching your reports",
+      error: err.message,
+    });
+  }
+};
+
+// @route   GET /api/complaints/my-tasks
+// @desc    Get all tasks assigned to the logged-in fixer
+const getMyTasks = async (req, res) => {
+  try {
+    const tasks = await Complaint.find({
+      $or: [
+        { fixedBy: req.user.id },
+        { status: "in-progress", fixedBy: req.user.id },
+      ],
+    }).sort({ updatedAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      tasks,
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "Server error while fetching your tasks",
+      error: err.message,
+    });
   }
 };
 
 // @route   PATCH /api/complaints/:id/fix
-// Private (fixer only)
 const markAsFixed = async (req, res) => {
   try {
     const complaint = await Complaint.findById(req.params.id);
@@ -212,25 +232,28 @@ const markAsFixed = async (req, res) => {
   }
 };
 
-// @route   PATCH /api/complaints/:id/inprogress
-// Private (fixer only)
+// @route   PATCH /api/complaints/:id/status
 const markAsInProgress = async (req, res) => {
   try {
+    const { status } = req.body;
     const complaint = await Complaint.findById(req.params.id);
 
     if (!complaint) {
       return res.status(404).json({ message: "Complaint not found" });
     }
 
-    if (complaint.status === "fixed") {
-      return res.status(400).json({ message: "Complaint is already fixed" });
+    if (status === "in-progress" && complaint.status !== "pending") {
+      return res.status(400).json({
+        message: "This issue is already being handled or resolved.",
+      });
     }
 
-    complaint.status = "in-progress";
+    complaint.status = status;
+    complaint.fixedBy = req.user.id;
     await complaint.save();
 
     res.status(200).json({
-      message: "Complaint marked as in progress",
+      message: "Task accepted! Status updated to in-progress.",
       complaint,
     });
   } catch (err) {
@@ -238,8 +261,6 @@ const markAsInProgress = async (req, res) => {
   }
 };
 
-// @route   PATCH /api/complaints/:id/report
-// Private (citizen + fixer)
 const reportAsFalse = async (req, res) => {
   try {
     const complaint = await Complaint.findById(req.params.id);
@@ -248,34 +269,44 @@ const reportAsFalse = async (req, res) => {
       return res.status(404).json({ message: "Complaint not found" });
     }
 
+    if (!complaint.reportedAsFalse) {
+      complaint.reportedAsFalse = [];
+    }
+
     const alreadyReported = complaint.reportedAsFalse.includes(req.user.id);
     if (alreadyReported) {
       return res
         .status(400)
-        .json({ message: "You have already reported this complaint" });
+        .json({ message: "You have already flagged this." });
     }
 
     complaint.reportedAsFalse.push(req.user.id);
+
+    // one strike — immediately hide and block
+    complaint.isRelevant = false;
+    if (complaint.reportedBy) {
+      await User.findByIdAndUpdate(complaint.reportedBy, { isBlocked: true });
+    }
+
     await complaint.save();
 
-    // one strike policy — block the uploader
-    await User.findByIdAndUpdate(complaint.reportedBy, { isBlocked: true });
-
     res.status(200).json({
-      message: "Complaint reported as false, user has been blocked",
+      message: "Complaint reported as false. Reporter has been blocked.",
+      flagCount: complaint.reportedAsFalse.length,
     });
   } catch (err) {
+    console.error("Error in reportAsFalse:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
 // @route   GET /api/complaints/map
-// Private (both citizen and fixer)
 const getMapData = async (req, res) => {
   try {
     const complaints = await Complaint.find({
-      status: { $ne: "fixed" },
-    }).select("location category raiseCount status");
+      status: { $in: ["pending", "in-progress"] },
+      isRelevant: { $ne: false }, // Hides fake/irrelevant reports
+    }).select("location category raiseCount status photos description");
 
     res.status(200).json({ complaints });
   } catch (err) {
@@ -287,9 +318,10 @@ module.exports = {
   analyzeComplaint,
   submitComplaint,
   getAllComplaints,
-  getComplaintById,
   markAsFixed,
   markAsInProgress,
   reportAsFalse,
   getMapData,
+  getMyComplaints,
+  getMyTasks,
 };

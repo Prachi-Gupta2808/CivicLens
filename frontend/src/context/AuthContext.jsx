@@ -10,7 +10,11 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) {
+        localStorage.removeItem("user");
+      }
     }
     setLoading(false);
   }, []);
@@ -20,6 +24,8 @@ export const AuthProvider = ({ children }) => {
     setToken(tokenData);
     localStorage.setItem("token", tokenData);
     localStorage.setItem("user", JSON.stringify(userData));
+    // CRITICAL: Save the role separately for easy access in Navbar/Home
+    localStorage.setItem("role", userData.role);
   };
 
   const logout = () => {
@@ -27,6 +33,8 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("role");
+    window.location.href = "/login"; // Force clear state
   };
 
   return (

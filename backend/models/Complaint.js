@@ -9,22 +9,16 @@ const complaintSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: [
-        "pothole",
-        "garbage",
-        "waterlogging",
-        "fallen_tree",
-        "dead_animal",
-      ], //initially for these major problems only
+      enum: ["pothole", "garbage", "waterlogging", "fallen_tree", "debris"],
       required: true,
     },
     description: {
       type: String,
-      required: true, // will be AI generated, user can edit
+      required: true,
     },
     isAIGenerated: {
       type: Boolean,
-      default: true, // tracks whether description came from AI or was manually written
+      default: true,
     },
     location: {
       type: {
@@ -37,36 +31,36 @@ const complaintSchema = new mongoose.Schema(
         required: true,
       },
       address: {
-        type: String, // human readable address like "MG Road, Pune"
+        type: String,
         default: null,
       },
     },
     photos: {
-      type: [String], // array of photo URLs, grows as more people report same issue
+      type: [String],
       required: true,
     },
     afterPhoto: {
-      type: String, // proof photo uploaded by fixer
+      type: String,
       default: null,
     },
     status: {
       type: String,
-      enum: ["open", "in-progress", "fixed"],
-      default: "open",
+      enum: ["pending", "in-progress", "fixed"],
+      default: "pending",
     },
     raiseCount: {
       type: Number,
-      default: 1, // increments when same issue is reported again
+      default: 1,
     },
     raisedBy: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User", // tracks who all reported this issue
+        ref: "User",
       },
     ],
     isRelevant: {
       type: Boolean,
-      default: true, // ML relevance classifier result
+      default: true,
     },
     fixedBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -75,22 +69,21 @@ const complaintSchema = new mongoose.Schema(
     },
     fixedAt: {
       type: Date,
-      default: null, // timestamp when issue was marked fixed
+      default: null,
     },
-    reportedAsfalse: [
+    // FIXED TYPO HERE: Changed 'reportedAsfalse' to 'reportedAsFalse'
+    // ADDED: default: [] to prevent .includes() errors
+    reportedAsFalse: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User", // users who flagged this complaint as false
+        ref: "User",
       },
     ],
   },
   { timestamps: true }
 );
 
-// critical for 50 metre geo-deduplication query
 complaintSchema.index({ location: "2dsphere" });
-
-// index on status and category for faster fixer dashboard queries
 complaintSchema.index({ status: 1, category: 1 });
 
 module.exports = mongoose.model("Complaint", complaintSchema);

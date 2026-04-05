@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
 import axios from "../utils/axios";
 
-export default function Login() {
-  const [form, setForm] = useState({ email: "", password: "" });
+export default function Register() {
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    aadhaar: "",
+    role: "citizen",
+  });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -18,11 +22,18 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    // Basic Aadhaar validation
+    const aadhaarPattern = /^[2-9]{1}[0-9]{11}$/;
+    if (!aadhaarPattern.test(form.aadhaar)) {
+      setError("Invalid Aadhaar number");
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await axios.post("/auth/login", form);
-      login(res.data.user, res.data.token);
-      navigate("/");
+      await axios.post("/auth/register", form);
+      navigate("/login");
     } catch (err) {
       setError(err.response?.data?.message || "Something went wrong");
     } finally {
@@ -32,7 +43,7 @@ export default function Login() {
 
   return (
     <div className="flex-1 flex flex-col font-sans">
-      {/* Navbar - Kept for internal page navigation */}
+      {/* Navbar */}
       <nav className="relative z-10 px-10 py-8 flex items-center justify-between">
         <div
           className="flex items-center gap-3 cursor-pointer"
@@ -68,12 +79,12 @@ export default function Login() {
       </nav>
 
       {/* Main Container */}
-      <div className="flex-1 flex items-center justify-center px-6 relative z-10">
+      <div className="flex-1 flex items-center justify-center px-6 relative z-10 py-8">
         <div className="w-full max-w-7xl flex flex-col md:flex-row items-center justify-between gap-12">
           {/* Form Side */}
           <div className="flex-1 flex justify-center lg:justify-start">
             <div className="relative group">
-              {/* Soft glow behind the circle */}
+              {/* Soft glow behind circle */}
               <div
                 className="absolute inset-0 rounded-full opacity-20 blur-2xl scale-105"
                 style={{ backgroundColor: "#9AB17A" }}
@@ -82,18 +93,27 @@ export default function Login() {
               <form
                 onSubmit={handleSubmit}
                 style={{ backgroundColor: "#9AB17A" }}
-                className="relative w-[500px] h-[500px] sm:w-[540px] sm:h-[540px] rounded-full shadow-2xl flex flex-col items-center justify-center px-20 gap-6 border-[8px] border-white/20 transition-all duration-500 hover:scale-[1.01]"
+                className="relative w-[500px] h-[500px] sm:w-[540px] sm:h-[540px] rounded-full shadow-2xl flex flex-col items-center justify-center px-20 gap-4 border-[8px] border-white/20 transition-all duration-500 hover:scale-[1.01]"
               >
                 <div className="text-center space-y-1">
                   <h1 className="text-4xl font-bold text-white tracking-tight">
-                    Welcome
+                    Join Us
                   </h1>
                   <p className="text-white/70 text-[11px] font-bold uppercase tracking-[0.3em]">
-                    Portal Access
+                    Create Your Account
                   </p>
                 </div>
 
-                <div className="w-full space-y-4">
+                <div className="w-full space-y-3">
+                  <input
+                    type="text"
+                    name="name"
+                    required
+                    placeholder="Full Name"
+                    value={form.name}
+                    onChange={handleChange}
+                    className="w-full px-5 py-2 rounded-full bg-white text-base focus:outline-none focus:ring-4 focus:ring-white/20 transition-all text-gray-800 placeholder-gray-400"
+                  />
                   <input
                     type="email"
                     name="email"
@@ -101,7 +121,7 @@ export default function Login() {
                     placeholder="Email Address"
                     value={form.email}
                     onChange={handleChange}
-                    className="w-full px-7 py-4 rounded-full bg-white text-base focus:outline-none focus:ring-4 focus:ring-white/20 transition-all text-gray-800 placeholder-gray-400"
+                    className="w-full px-5 py-2 rounded-full bg-white text-base focus:outline-none focus:ring-4 focus:ring-white/20 transition-all text-gray-800 placeholder-gray-400"
                   />
                   <input
                     type="password"
@@ -110,31 +130,55 @@ export default function Login() {
                     placeholder="Password"
                     value={form.password}
                     onChange={handleChange}
-                    className="w-full px-7 py-4 rounded-full bg-white text-base focus:outline-none focus:ring-4 focus:ring-white/20 transition-all text-gray-800 placeholder-gray-400"
+                    className="w-full px-5 py-2 rounded-full bg-white text-base focus:outline-none focus:ring-4 focus:ring-white/20 transition-all text-gray-800 placeholder-gray-400"
                   />
+                  <input
+                    type="text"
+                    name="aadhaar"
+                    required
+                    placeholder="Aadhaar Number"
+                    maxLength={12}
+                    value={form.aadhaar}
+                    onChange={handleChange}
+                    className="w-full px-5 py-2 rounded-full bg-white text-base focus:outline-none focus:ring-4 focus:ring-white/20 transition-all text-gray-800 placeholder-gray-400"
+                  />
+                  <div className="relative group/select">
+                    <select
+                      name="role"
+                      value={form.role}
+                      onChange={handleChange}
+                      className="w-full px-5 py-2 rounded-full bg-white text-base focus:outline-none focus:ring-4 focus:ring-white/20 transition-all text-gray-800 appearance-none cursor-pointer"
+                    >
+                      <option value="citizen">Citizen</option>
+                      <option value="fixer">Fixer (Nagarpalika)</option>
+                    </select>
+                    <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                      ▼
+                    </div>
+                  </div>
                 </div>
 
                 <button
                   type="submit"
                   disabled={loading}
                   style={{ backgroundColor: "#6D8165" }}
-                  className="w-full py-4 hover:brightness-110 active:scale-95 text-white font-bold rounded-full text-base shadow-xl transition-all disabled:opacity-50"
+                  className="w-full py-3.5 hover:brightness-110 active:scale-95 text-white font-bold rounded-full text-base shadow-xl transition-all disabled:opacity-50"
                 >
-                  {loading ? "Verifying..." : "Sign In"}
+                  {loading ? "Creating Account..." : "Create Account"}
                 </button>
 
                 <p className="text-sm text-white/80">
-                  New user?{" "}
+                  Already have an account?{" "}
                   <Link
-                    to="/register"
+                    to="/login"
                     className="font-bold text-white hover:underline"
                   >
-                    Create account
+                    Sign in
                   </Link>
                 </p>
 
                 {error && (
-                  <p className="absolute -bottom-10 text-red-500 text-xs font-medium animate-pulse">
+                  <p className="absolute -bottom-10 text-red-500 text-xs font-medium text-center animate-pulse">
                     {error}
                   </p>
                 )}
