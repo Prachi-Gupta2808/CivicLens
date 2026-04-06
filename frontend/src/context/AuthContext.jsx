@@ -24,7 +24,6 @@ export const AuthProvider = ({ children }) => {
     setToken(tokenData);
     localStorage.setItem("token", tokenData);
     localStorage.setItem("user", JSON.stringify(userData));
-    // CRITICAL: Save the role separately for easy access in Navbar/Home
     localStorage.setItem("role", userData.role);
   };
 
@@ -34,7 +33,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     localStorage.removeItem("role");
-    window.location.href = "/login"; // Force clear state
+    window.location.href = "/login";
   };
 
   return (

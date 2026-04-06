@@ -12,12 +12,15 @@ import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const themeColor = "#9AB17A";
 
-  const userRole = user?.role || localStorage.getItem("role");
-  const isLoggedIn = user || localStorage.getItem("token");
+  const isLoggedIn = !!user;
+
+  const userRole = user?.role;
+
+  if (loading) return null;
 
   const handleDashboardRedirect = () => {
     setIsMenuOpen(false);
@@ -31,11 +34,11 @@ export default function Navbar() {
   const handleLogout = () => {
     setIsMenuOpen(false);
     logout();
+    navigate("/login");
   };
 
   return (
     <nav className="relative z-[2000] px-6 md:px-10 py-6 flex items-center justify-between bg-transparent">
-      {/* Logo */}
       <div
         className="flex items-center gap-3 cursor-pointer relative z-50"
         onClick={() => navigate("/")}
@@ -68,21 +71,21 @@ export default function Navbar() {
         </span>
       </div>
 
-      {/* Desktop Actions */}
       <div className="hidden md:flex gap-3 items-center">
         {isLoggedIn ? (
           <>
             <button
               onClick={handleDashboardRedirect}
-              className="flex items-center gap-2 px-5 py-2 rounded-lg text-white font-bold cursor-pointer transition active:scale-95 hover:brightness-105 shadow-sm"
+              className="flex items-center gap-2 px-5 py-2 rounded-lg text-white font-bold transition active:scale-95 hover:brightness-105 shadow-sm"
               style={{ backgroundColor: themeColor }}
             >
               <LayoutDashboard size={18} />
               {userRole === "fixer" ? "Admin Panel" : "Dashboard"}
             </button>
+
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-5 py-2 rounded-lg border border-red-200 text-red-500 cursor-pointer hover:bg-red-50 transition"
+              className="flex items-center gap-2 px-5 py-2 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition"
             >
               <LogOut size={18} /> Logout
             </button>
@@ -96,6 +99,7 @@ export default function Navbar() {
             >
               Login
             </button>
+
             <button
               onClick={() => navigate("/register")}
               className="px-6 py-2.5 rounded-lg text-white font-bold transition active:scale-95 hover:brightness-105 shadow-md"
@@ -107,17 +111,15 @@ export default function Navbar() {
         )}
       </div>
 
-      {/* Mobile Toggle Button */}
       <button
-        className="md:hidden p-2 text-gray-600 focus:outline-none relative z-50"
+        className="md:hidden p-2 text-gray-600 relative z-50"
         onClick={() => setIsMenuOpen(!isMenuOpen)}
       >
         {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
       </button>
 
-      {/* Mobile Menu Overlay */}
       <div
-        className={`fixed inset-0 bg-white z-40 transition-transform duration-300 ease-in-out transform md:hidden flex flex-col items-center justify-center px-6 ${
+        className={`fixed inset-0 bg-white z-40 transition-transform duration-300 transform md:hidden flex flex-col items-center justify-center px-6 ${
           isMenuOpen ? "translate-y-0" : "-translate-y-full"
         }`}
       >
@@ -132,6 +134,7 @@ export default function Navbar() {
                 <LayoutDashboard size={22} />
                 {userRole === "fixer" ? "Admin Panel" : "Dashboard"}
               </button>
+
               <button
                 onClick={handleLogout}
                 className="flex items-center justify-center gap-3 w-full py-4 rounded-xl border-2 border-red-100 text-red-500 font-bold text-lg"
@@ -151,6 +154,7 @@ export default function Navbar() {
               >
                 <LogIn size={20} /> Login
               </button>
+
               <button
                 onClick={() => {
                   setIsMenuOpen(false);
