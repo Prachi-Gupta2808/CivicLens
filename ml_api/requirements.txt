@@ -1,6 +1,10 @@
-fastapi
-uvicorn
-torch
-torchvision
-pillow
-numpy
+torch==2.2.2
+torchvision==0.17.2
+numpy==1.26.4
+matplotlib==3.8.4
+Pillow==10.3.0
+transformers==4.40.2
+sentencepiece
+fastapi==0.110.0
+uvicorn==0.29.0
+python-multipart==0.0.9
