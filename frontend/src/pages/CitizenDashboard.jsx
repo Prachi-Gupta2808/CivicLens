@@ -2,7 +2,6 @@ import {
   AlertCircle,
   BarChart3,
   CheckCircle2,
-  ChevronRight,
   Clock,
   Loader2,
   MapPin,
@@ -63,7 +62,7 @@ export default function CitizenDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-transparent relative z-10 cursor-auto">
+    <div className="min-h-screen bg-transparent relative z-10">
       <Navbar />
 
       <main className="max-w-6xl mx-auto px-6 py-10">
@@ -129,8 +128,10 @@ export default function CitizenDashboard() {
               complaints.map((issue) => (
                 <div
                   key={issue._id}
-                  onClick={() => (window.location.href = `/issue/${issue._id}`)}
-                  className="p-6 hover:bg-gray-50/80 transition-all cursor-pointer group active:bg-gray-100"
+                  className="p-6 transition-all group"
+                  /* Note: onClick and cursor-pointer removed 
+                    to make issues non-clickable. 
+                  */
                 >
                   <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
                     <img
@@ -159,15 +160,9 @@ export default function CitizenDashboard() {
 
                     <div className="hidden md:flex items-center gap-4">
                       <div className="text-right">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase">
-                          Support
-                        </p>
                         <p className="text-sm font-bold text-gray-700">
                           {issue.raiseCount} Votes
                         </p>
-                      </div>
-                      <div className="p-2 rounded-xl bg-gray-50 text-gray-300 group-hover:text-[#9AB17A] group-hover:bg-[#9AB17A10] transition-colors">
-                        <ChevronRight size={20} />
                       </div>
                     </div>
                   </div>
