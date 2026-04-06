@@ -9,6 +9,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import axios from "../utils/axios";
 
@@ -211,6 +212,7 @@ export default function FixerDashboard() {
                       id={`file-${issue._id}`}
                       className="hidden"
                       accept="image/*"
+                      capture="environment"
                       onChange={(e) =>
                         handleResolve(issue._id, e.target.files[0])
                       }
@@ -235,7 +237,7 @@ export default function FixerDashboard() {
                       ) : (
                         <>
                           <ImageIcon size={16} />
-                          Upload Fix Photo & Resolve
+                          Upload Fix Photo
                         </>
                       )}
                     </label>
@@ -267,83 +269,70 @@ export default function FixerDashboard() {
                 </h2>
               </div>
               <span
-                className="text-[10px] font-black px-2.5 py-1 rounded-lg border"
-                style={{
-                  backgroundColor: `${themeColor}15`,
-                  color: themeColor,
-                  borderColor: `${themeColor}30`,
-                }}
+                className="text-[10px] font-black px-2.5 py-1 rounded-lg border bg-white/50"
+                style={{ color: themeColor, borderColor: `${themeColor}30` }}
               >
                 {completed.length}
               </span>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
               {completed.map((issue) => (
                 <div
                   key={issue._id}
-                  className="bg-white/80 backdrop-blur-sm rounded-[2rem] border border-gray-100 overflow-hidden hover:border-gray-200 transition-all shadow-sm"
+                  className="bg-white/90 backdrop-blur-md rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-md"
                 >
-                  {(issue.photos?.[0] || issue.afterPhoto) && (
-                    <div className="grid grid-cols-2 h-32">
-                      {issue.photos?.[0] ? (
-                        <div className="relative">
-                          <img
-                            src={issue.photos[0]}
-                            alt="before"
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute bottom-2 left-2 bg-black/50 text-white text-[8px] font-bold px-2 py-0.5 rounded-full uppercase backdrop-blur-sm">
-                            Before
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="bg-gray-100/50 flex items-center justify-center">
-                          <ImageIcon size={20} className="text-gray-300" />
-                        </div>
-                      )}
-                      {issue.afterPhoto ? (
-                        <div className="relative">
-                          <img
-                            src={issue.afterPhoto}
-                            alt="after"
-                            className="w-full h-full object-cover"
-                          />
-                          <div
-                            className="absolute bottom-2 right-2 text-white text-[8px] font-bold px-2 py-0.5 rounded-full uppercase"
-                            style={{ backgroundColor: themeColor }}
-                          >
-                            After
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="bg-gray-50/50 flex items-center justify-center">
-                          <ImageIcon size={20} className="text-gray-300" />
-                        </div>
-                      )}
+                  {/* Images Section (Matching the split layout in your screenshot) */}
+                  <div className="grid grid-cols-2 h-48 sm:h-56 p-2 gap-1">
+                    <div className="relative overflow-hidden rounded-l-[1.8rem]">
+                      <img
+                        src={issue.photos?.[0] || "/placeholder-before.jpg"}
+                        alt="before"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute bottom-3 left-3 bg-black/60 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest backdrop-blur-sm">
+                        Before
+                      </div>
                     </div>
-                  )}
 
-                  <div className="p-5 flex items-center justify-between">
+                    <div className="relative overflow-hidden rounded-r-[1.8rem]">
+                      <img
+                        src={issue.afterPhoto || "/placeholder-after.jpg"}
+                        alt="after"
+                        className="w-full h-full object-cover"
+                      />
+                      <div
+                        className="absolute bottom-3 right-3 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest"
+                        style={{ backgroundColor: themeColor }}
+                      >
+                        After
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Content Section (Matching your screenshot exactly) */}
+                  <div className="p-7 flex items-center justify-between">
                     <div className="flex flex-col gap-1">
-                      <h3 className="font-bold text-gray-800 text-sm uppercase tracking-tight">
-                        {issue.category?.replace("_", " ")}
+                      <h3 className="font-black text-slate-800 text-lg uppercase tracking-tight">
+                        {issue.category?.replace("_", " ") || "Resolved Issue"}
                       </h3>
-                      <p className="text-[10px] text-gray-400 font-medium">
+                      <p className="text-xs text-slate-400 font-bold">
                         Resolved on{" "}
                         {new Date(
                           issue.fixedAt || issue.updatedAt
                         ).toLocaleDateString("en-GB")}
                       </p>
                     </div>
+
+                    {/* The Circular Icon from the screenshot */}
                     <div
-                      className="p-3 rounded-2xl"
+                      className="w-14 h-14 rounded-full flex items-center justify-center transition-transform hover:rotate-12"
                       style={{
-                        backgroundColor: `${themeColor}15`,
+                        backgroundColor: `${themeColor}10`,
                         color: themeColor,
                       }}
                     >
-                      <PackageCheck size={20} />
+                      <PackageCheck size={28} strokeWidth={1.5} />
                     </div>
                   </div>
                 </div>
@@ -359,6 +348,7 @@ export default function FixerDashboard() {
           </section>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

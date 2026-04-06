@@ -23,7 +23,6 @@ export default function ReportIssue() {
     address: "",
   });
 
-  // get location on page load
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -33,7 +32,6 @@ export default function ReportIssue() {
     }
   }, []);
 
-  // step 1 — photo selected
   const handleCapture = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -42,22 +40,20 @@ export default function ReportIssue() {
     await analyzeImage(file);
   };
 
-  // step 2 — send to /analyze
   const analyzeImage = async (file) => {
     setLoading(true);
     const formData = new FormData();
-    formData.append("photo", file); // ← must be "photo"
+    formData.append("photo", file);
 
     try {
       const res = await axios.post("/complaints/analyze", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      // backend returns label, description, photoUrl
       setReportData({
         category: res.data.label,
         description: res.data.description,
-        photoUrl: res.data.photoUrl, // cloudinary URL
+        photoUrl: res.data.photoUrl,
         address: "",
       });
       setStep(3);
@@ -72,7 +68,6 @@ export default function ReportIssue() {
     }
   };
 
-  // step 3 — final submit to /complaints
   const handleSubmit = async () => {
     if (!location) {
       alert("Please enable location permissions to submit.");
@@ -81,7 +76,6 @@ export default function ReportIssue() {
 
     setLoading(true);
     try {
-      // send photoUrl (not file again), description, category, coordinates
       await axios.post("/complaints", {
         photoUrl: reportData.photoUrl,
         description: reportData.description,
@@ -102,7 +96,6 @@ export default function ReportIssue() {
       <Navbar />
 
       <div className="max-w-md mx-auto px-6 pt-10">
-        {/* progress bar */}
         <div className="flex justify-between mb-8">
           {[1, 2, 3, 4].map((s) => (
             <div
@@ -113,7 +106,6 @@ export default function ReportIssue() {
           ))}
         </div>
 
-        {/* step 1 — capture */}
         {step === 1 && (
           <div className="text-center">
             <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
@@ -141,7 +133,7 @@ export default function ReportIssue() {
                   className="py-4 px-6 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-2 transition active:scale-95"
                   style={{ backgroundColor: themeColor }}
                 >
-                  <Camera size={20} /> Open Camera / Upload Photo
+                  <Camera size={20} /> Open Camera
                 </div>
               </label>
 
@@ -225,7 +217,7 @@ export default function ReportIssue() {
                   <MapPin size={12} style={{ color: themeColor }} />
                   {location
                     ? "Location tagged automatically"
-                    : "⚠️ Location not detected — please enable GPS"}
+                    : "Location not detected — please enable GPS"}
                 </p>
 
                 {/* submit button */}
@@ -248,7 +240,6 @@ export default function ReportIssue() {
           </div>
         )}
 
-        {/* step 4 — success */}
         {step === 4 && (
           <div className="text-center py-10">
             <div

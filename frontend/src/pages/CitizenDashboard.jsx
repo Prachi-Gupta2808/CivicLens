@@ -9,6 +9,7 @@ import {
   Plus,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import axios from "../utils/axios";
 
@@ -62,8 +63,7 @@ export default function CitizenDashboard() {
   }
 
   return (
-    // ADDED: relative z-10 and cursor-auto to ensure interaction layer is correct
-    <div className="min-h-screen bg-transparent pb-20 relative z-10 cursor-auto">
+    <div className="min-h-screen bg-transparent relative z-10 cursor-auto">
       <Navbar />
 
       <main className="max-w-6xl mx-auto px-6 py-10">
@@ -184,6 +184,7 @@ export default function CitizenDashboard() {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

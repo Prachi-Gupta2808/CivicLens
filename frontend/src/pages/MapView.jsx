@@ -12,8 +12,6 @@ import { useEffect, useRef, useState } from "react";
 import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 import Navbar from "../components/Navbar";
 import axios from "../utils/axios";
-// IMPORTANT: Import your auth hook here
-// import { useAuth } from "../context/AuthContext";
 
 const themeColor = "#9AB17A";
 
@@ -53,9 +51,6 @@ function FlyToLocation({ position, zoom, trigger }) {
 }
 
 export default function MapView() {
-  // --- AUTH LOGIC ---
-  // If using Context: const { user } = useAuth();
-  // If using localStorage:
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const isFixer = user?.role === "fixer";
 
@@ -67,7 +62,6 @@ export default function MapView() {
   const [userLocation, setUserLocation] = useState(null);
   const [locating, setLocating] = useState(false);
   const [fixing, setFixing] = useState(false);
-
   const [reporting, setReporting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -133,7 +127,7 @@ export default function MapView() {
       alert(res.data.message);
       setSelected(null);
       setShowConfirm(false);
-      fetchComplaints(); // ← this refreshes map
+      fetchComplaints();
     } catch (err) {
       alert(err.response?.data?.message || "Already flagged or server error.");
     } finally {
@@ -142,25 +136,28 @@ export default function MapView() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50">
+    <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
       <Navbar />
 
-      <div className="px-6 py-3 bg-white border-b border-gray-100 flex items-center gap-6 flex-wrap text-[10px] sm:text-xs">
-        <span className="font-bold text-gray-400 uppercase tracking-widest">
-          Urgency Scale:
+      {/* Urgency Scale Bar */}
+      <div className="px-4 py-3 bg-white border-b border-gray-100 flex items-center gap-x-4 gap-y-2 flex-wrap text-[9px] sm:text-xs">
+        <span className="font-bold text-gray-400 uppercase tracking-widest mr-auto sm:mr-0">
+          Urgency:
         </span>
         {[
-          { color: "#9AB17A", label: "1–3 Reports" },
-          { color: "#FBBF24", label: "4–10 Reports" },
-          { color: "#F97316", label: "11–25 Reports" },
-          { color: "#EF4444", label: "High Priority" },
+          { color: "#9AB17A", label: "1–3" },
+          { color: "#FBBF24", label: "4–10" },
+          { color: "#F97316", label: "11–25" },
+          { color: "#EF4444", label: "High" },
         ].map((item) => (
-          <div key={item.label} className="flex items-center gap-2">
+          <div key={item.label} className="flex items-center gap-1.5">
             <div
-              className="w-2.5 h-2.5 rounded-full"
+              className="w-2.5 h-2.5 rounded-full shrink-0"
               style={{ backgroundColor: item.color }}
             />
-            <span className="text-gray-600 font-medium">{item.label}</span>
+            <span className="text-gray-600 font-medium whitespace-nowrap">
+              {item.label}
+            </span>
           </div>
         ))}
       </div>
@@ -201,62 +198,68 @@ export default function MapView() {
           })}
         </MapContainer>
 
-        <div className="absolute top-4 left-16 z-[1000] bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-sm text-[11px] font-bold text-gray-700 border border-gray-100 flex items-center gap-2 transition-all">
-          <div className="w-2 h-2 rounded-full bg-[#9AB17A] animate-pulse" />
-          {loading
-            ? "Fetching Data..."
-            : `${complaints.length} Local Issues Found`}
+        {/* ISSUES COUNTER - Repositioned for Mobile to avoid Zoom Controls */}
+        <div className="absolute top-24 left-3 sm:top-4 sm:left-16 z-[1000] bg-white/90 backdrop-blur-md px-3 py-2 rounded-xl sm:rounded-2xl shadow-md text-[10px] sm:text-[11px] font-bold text-gray-700 border border-gray-100 flex items-center gap-2 transition-all">
+          <div className="w-2 h-2 rounded-full bg-[#9AB17A] animate-pulse shrink-0" />
+          <span className="whitespace-nowrap">
+            {loading ? "Loading..." : `${complaints.length} Issues`}
+          </span>
         </div>
 
+        {/* LOCATE ME BUTTON */}
         <button
           onClick={() => handleLocateMe(false)}
-          className="absolute top-4 right-4 z-[1000] bg-white px-5 py-3 rounded-2xl shadow-lg text-xs font-bold flex items-center gap-2 hover:bg-gray-50 border border-gray-100"
+          className="absolute top-4 right-4 z-[1000] bg-white p-3 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl shadow-lg text-xs font-bold flex items-center gap-2 hover:bg-gray-50 border border-gray-100 active:scale-95 transition-transform"
           style={{ color: themeColor }}
         >
           {locating ? (
-            <Loader2 size={14} className="animate-spin" />
+            <Loader2 size={16} className="animate-spin" />
           ) : (
-            <MapPin size={14} />
+            <MapPin size={16} />
           )}
-          {locating ? "Locating..." : "Find My Area"}
+          <span className="hidden sm:inline">
+            {locating ? "Locating..." : "Find My Area"}
+          </span>
         </button>
 
+        {/* SELECTED ISSUE OVERLAY */}
         {selected && (
-          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-sm max-h-[80vh] overflow-y-auto custom-scrollbar">
-            <div className="bg-white rounded-[2rem] shadow-2xl border border-gray-100 overflow-hidden animate-in slide-in-from-bottom-5 duration-300">
+          <div className="absolute bottom-4 sm:bottom-10 left-1/2 -translate-x-1/2 z-[1000] w-[95%] max-w-sm max-h-[75vh] overflow-hidden">
+            <div className="bg-white rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl border border-gray-100 overflow-hidden flex flex-col animate-in slide-in-from-bottom-5 duration-300">
               <div
-                className="h-1.5 w-full"
+                className="h-1.5 w-full shrink-0"
                 style={{
                   backgroundColor: getRaiseCountColor(selected.raiseCount),
                 }}
               />
-              {selected.photos?.[0] && (
-                <img
-                  src={selected.photos[0]}
-                  alt="issue"
-                  className="w-full h-48 object-cover"
-                />
-              )}
 
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex flex-col gap-2">
-                    <div className="flex flex-wrap gap-2">
-                      <span className="px-3 py-1 rounded-full text-[10px] font-extrabold uppercase bg-gray-100 text-gray-600">
-                        {selected.category?.replace("_", " ")}
-                      </span>
-                      <span
-                        className={`px-3 py-1 rounded-full text-[10px] font-extrabold uppercase ${
-                          selected.status === "in-progress"
-                            ? "bg-blue-50 text-blue-600"
-                            : "bg-orange-50 text-orange-600"
-                        }`}
-                      >
-                        {selected.status}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3 text-[11px] text-gray-400 font-medium">
-                      <span className="flex items-center gap-1">
+              <div className="overflow-y-auto custom-scrollbar">
+                {selected.photos?.[0] && (
+                  <img
+                    src={selected.photos[0]}
+                    alt="issue"
+                    className="w-full h-40 sm:h-48 object-cover"
+                  />
+                )}
+
+                <div className="p-5 sm:p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        <span className="px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-extrabold uppercase bg-gray-100 text-gray-600">
+                          {selected.category?.replace("_", " ")}
+                        </span>
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-extrabold uppercase ${
+                            selected.status === "in-progress"
+                              ? "bg-blue-50 text-blue-600"
+                              : "bg-orange-50 text-orange-600"
+                          }`}
+                        >
+                          {selected.status}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] sm:text-[11px] text-gray-400 font-medium">
                         <TrendingUp
                           size={12}
                           style={{
@@ -265,90 +268,88 @@ export default function MapView() {
                         />
                         {selected.raiseCount}{" "}
                         {selected.raiseCount === 1 ? "Report" : "Reports"}
-                      </span>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-1">
+                      {isFixer && (
+                        <button
+                          onClick={() => setShowConfirm(!showConfirm)}
+                          className={`p-2 rounded-full transition-colors ${
+                            showConfirm
+                              ? "bg-red-500 text-white"
+                              : "bg-red-50 text-red-500"
+                          }`}
+                        >
+                          <AlertTriangle size={18} />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          setSelected(null);
+                          setShowConfirm(false);
+                        }}
+                        className="p-2 bg-gray-50 rounded-full text-gray-400"
+                      >
+                        <X size={20} />
+                      </button>
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    {/* ROLE PROTECTION: Only visible to Fixers */}
-                    {isFixer && (
-                      <button
-                        onClick={() => setShowConfirm(!showConfirm)}
-                        className={`p-2 rounded-full transition-colors ${
-                          showConfirm
-                            ? "bg-red-500 text-white"
-                            : "bg-red-50 text-red-500 hover:bg-red-100"
-                        }`}
-                      >
-                        <AlertTriangle size={18} />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => {
-                        setSelected(null);
-                        setShowConfirm(false);
-                      }}
-                      className="p-2 bg-gray-50 rounded-full hover:bg-gray-100 text-gray-400"
+                  {isFixer && showConfirm && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl animate-in fade-in zoom-in duration-200">
+                      <p className="text-[9px] font-black text-red-700 uppercase mb-3 text-center leading-tight">
+                        Flag as false? Reporter will be blocked.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          disabled={reporting}
+                          onClick={() => handleReportFalse(selected._id)}
+                          className="flex-1 py-2 bg-red-600 text-white text-[9px] font-black uppercase rounded-lg"
+                        >
+                          {reporting ? "..." : "Confirm"}
+                        </button>
+                        <button
+                          onClick={() => setShowConfirm(false)}
+                          className="flex-1 py-2 bg-white text-gray-500 text-[9px] font-black uppercase rounded-lg border border-gray-200"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mb-4" onClick={() => setExpanded(!expanded)}>
+                    <p
+                      className={`text-xs sm:text-sm text-gray-600 leading-relaxed ${
+                        !expanded ? "line-clamp-2 sm:line-clamp-3" : ""
+                      }`}
                     >
-                      <X size={20} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* ROLE PROTECTION: Confirmation dialog */}
-                {isFixer && showConfirm && (
-                  <div className="mb-4 p-4 bg-red-50 border border-red-100 rounded-2xl animate-in fade-in zoom-in duration-200">
-                    <p className="text-[10px] font-black text-red-700 uppercase mb-3 text-center">
-                      Report false issue? Reporter will be blocked.
+                      {selected.description || "No description provided."}
                     </p>
-                    <div className="flex gap-2">
-                      <button
-                        disabled={reporting}
-                        onClick={() => handleReportFalse(selected._id)}
-                        className="flex-1 py-2 bg-red-600 text-white text-[10px] font-black uppercase rounded-xl"
-                      >
-                        {reporting ? "Blocking..." : "Confirm Report"}
-                      </button>
-                      <button
-                        onClick={() => setShowConfirm(false)}
-                        className="flex-1 py-2 bg-white text-gray-500 text-[10px] font-black uppercase rounded-xl border border-gray-200"
-                      >
-                        Cancel
-                      </button>
-                    </div>
                   </div>
-                )}
 
-                <div className="mb-6" onClick={() => setExpanded(!expanded)}>
-                  <p
-                    className={`text-sm text-gray-600 leading-relaxed cursor-pointer ${
-                      !expanded ? "line-clamp-3" : ""
-                    }`}
-                  >
-                    {selected.description || "No description provided."}
-                  </p>
-                </div>
+                  {isFixer && selected.status === "pending" && !showConfirm && (
+                    <button
+                      onClick={() => handleFixIssue(selected._id)}
+                      disabled={fixing}
+                      className="w-full mb-4 py-3 rounded-xl bg-black text-white text-[10px] sm:text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+                    >
+                      {fixing ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <CheckCircle2 size={14} />
+                      )}
+                      Accept to Fix
+                    </button>
+                  )}
 
-                {isFixer && selected.status === "pending" && !showConfirm && (
-                  <button
-                    onClick={() => handleFixIssue(selected._id)}
-                    disabled={fixing}
-                    className="w-full mb-4 py-3.5 rounded-2xl bg-black text-white text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-gray-800 disabled:opacity-50"
-                  >
-                    {fixing ? (
-                      <Loader2 size={16} className="animate-spin" />
-                    ) : (
-                      <CheckCircle2 size={16} />
-                    )}
-                    Accept to Fix
-                  </button>
-                )}
-
-                <div className="pt-4 border-t border-gray-50 flex items-center gap-2 text-[11px] text-gray-400 italic">
-                  <MapPin size={12} className="shrink-0" />
-                  <span className="truncate">
-                    {selected.location?.address || "GPS Tagged Location"}
-                  </span>
+                  <div className="pt-3 border-t border-gray-50 flex items-center gap-2 text-[10px] text-gray-400 italic">
+                    <MapPin size={10} className="shrink-0" />
+                    <span className="truncate">
+                      {selected.location?.address || "GPS Tagged Location"}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

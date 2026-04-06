@@ -1,17 +1,26 @@
-import { LayoutDashboard, LogOut } from "lucide-react";
-import React from "react";
+import {
+  LayoutDashboard,
+  LogIn,
+  LogOut,
+  Menu,
+  UserPlus,
+  X,
+} from "lucide-react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const { user, logout, isLoggedIn } = useAuth();
+  const { user, logout } = useAuth();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const themeColor = "#9AB17A";
 
-  // Get role from context user, or fallback to storage
   const userRole = user?.role || localStorage.getItem("role");
+  const isLoggedIn = user || localStorage.getItem("token");
 
   const handleDashboardRedirect = () => {
+    setIsMenuOpen(false);
     if (userRole === "fixer") {
       navigate("/fixer-dashboard");
     } else {
@@ -19,14 +28,20 @@ export default function Navbar() {
     }
   };
 
+  const handleLogout = () => {
+    setIsMenuOpen(false);
+    logout();
+  };
+
   return (
-    <nav className="relative z-50 px-10 py-8 flex items-center justify-between bg-transparent">
+    <nav className="relative z-[2000] px-6 md:px-10 py-6 flex items-center justify-between bg-transparent">
+      {/* Logo */}
       <div
-        className="flex items-center gap-3 cursor-pointer"
+        className="flex items-center gap-3 cursor-pointer relative z-50"
         onClick={() => navigate("/")}
       >
         <div
-          className="w-10 h-10 rounded-lg flex items-center justify-center"
+          className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm"
           style={{ backgroundColor: themeColor }}
         >
           <svg
@@ -48,36 +63,107 @@ export default function Navbar() {
             />
           </svg>
         </div>
-        <span className="text-gray-900 font-bold text-xl">CivicLens</span>
+        <span className="text-gray-900 font-bold text-xl tracking-tight">
+          CivicLens
+        </span>
       </div>
 
-      <div className="flex gap-4 items-center">
-        {user || localStorage.getItem("token") ? (
+      {/* Desktop Actions */}
+      <div className="hidden md:flex gap-3 items-center">
+        {isLoggedIn ? (
           <>
             <button
               onClick={handleDashboardRedirect}
-              className="flex items-center gap-2 px-5 py-2 rounded-lg text-white font-bold cursor-pointer transition active:scale-95"
+              className="flex items-center gap-2 px-5 py-2 rounded-lg text-white font-bold cursor-pointer transition active:scale-95 hover:brightness-105 shadow-sm"
               style={{ backgroundColor: themeColor }}
             >
               <LayoutDashboard size={18} />
               {userRole === "fixer" ? "Admin Panel" : "Dashboard"}
             </button>
             <button
-              onClick={logout}
-              className="flex items-center gap-2 px-5 py-2 rounded-lg border border-red-200 text-red-500 cursor-pointer"
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-5 py-2 rounded-lg border border-red-200 text-red-500 cursor-pointer hover:bg-red-50 transition"
             >
               <LogOut size={18} /> Logout
             </button>
           </>
         ) : (
-          <button
-            onClick={() => navigate("/login")}
-            className="px-6 py-2 rounded-lg text-white font-bold"
-            style={{ backgroundColor: themeColor }}
-          >
-            Login
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate("/login")}
+              className="px-6 py-2 rounded-lg font-bold border-2 transition active:scale-95"
+              style={{ borderColor: themeColor, color: themeColor }}
+            >
+              Login
+            </button>
+            <button
+              onClick={() => navigate("/register")}
+              className="px-6 py-2.5 rounded-lg text-white font-bold transition active:scale-95 hover:brightness-105 shadow-md"
+              style={{ backgroundColor: themeColor }}
+            >
+              Register
+            </button>
+          </div>
         )}
+      </div>
+
+      {/* Mobile Toggle Button */}
+      <button
+        className="md:hidden p-2 text-gray-600 focus:outline-none relative z-50"
+        onClick={() => setIsMenuOpen(!isMenuOpen)}
+      >
+        {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
+      </button>
+
+      {/* Mobile Menu Overlay */}
+      <div
+        className={`fixed inset-0 bg-white z-40 transition-transform duration-300 ease-in-out transform md:hidden flex flex-col items-center justify-center px-6 ${
+          isMenuOpen ? "translate-y-0" : "-translate-y-full"
+        }`}
+      >
+        <div className="flex flex-col w-full gap-4 max-w-sm">
+          {isLoggedIn ? (
+            <>
+              <button
+                onClick={handleDashboardRedirect}
+                className="flex items-center justify-center gap-3 w-full py-4 rounded-xl text-white font-bold text-lg shadow-lg"
+                style={{ backgroundColor: themeColor }}
+              >
+                <LayoutDashboard size={22} />
+                {userRole === "fixer" ? "Admin Panel" : "Dashboard"}
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex items-center justify-center gap-3 w-full py-4 rounded-xl border-2 border-red-100 text-red-500 font-bold text-lg"
+              >
+                <LogOut size={22} /> Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  navigate("/login");
+                }}
+                className="flex items-center justify-center gap-3 w-full py-4 rounded-xl font-bold text-lg border-2"
+                style={{ borderColor: themeColor, color: themeColor }}
+              >
+                <LogIn size={20} /> Login
+              </button>
+              <button
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  navigate("/register");
+                }}
+                className="flex items-center justify-center gap-3 w-full py-4 rounded-xl text-white font-bold text-lg shadow-lg"
+                style={{ backgroundColor: themeColor }}
+              >
+                <UserPlus size={20} /> Register
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </nav>
   );

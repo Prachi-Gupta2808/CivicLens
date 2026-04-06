@@ -38,7 +38,6 @@ export default function Home() {
   const themeColor = "#9AB17A";
   const themeColorLowOpacity = "rgba(154, 177, 122, 0.1)";
 
-  // --- ROLE LOGIC ---
   const isLoggedIn = !!localStorage.getItem("token");
   const userRole = user?.role || localStorage.getItem("role");
   const isFixer =
@@ -56,10 +55,8 @@ export default function Home() {
     }
 
     if (isFixer) {
-      // Fixer goes directly to the Map Navigation (Heatmap view)
       navigate("/map");
     } else {
-      // Citizen goes to the reporting flow
       navigate("/report-issue");
     }
   };
@@ -146,9 +143,9 @@ export default function Home() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="px-10 py-20 max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center relative z-10">
-        <div className="animate-fade-in">
-          <h1 className="text-5xl lg:text-7xl font-extrabold leading-tight mb-6">
+      <section className="px-6 md:px-10 py-12 lg:py-20 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center relative z-10">
+        <div className="animate-fade-in text-center lg:text-left">
+          <h1 className="text-4xl md:text-5xl lg:text-7xl font-extrabold leading-tight mb-6">
             Better Cities,
             <br />
             <span style={{ color: themeColor }}>
@@ -156,15 +153,15 @@ export default function Home() {
             </span>{" "}
             at a Time.
           </h1>
-          <p className="text-lg text-gray-600 mb-10 leading-relaxed max-w-lg">
+          <p className="text-base md:text-lg text-gray-600 mb-10 leading-relaxed max-w-lg mx-auto lg:mx-0">
             {isFixer
               ? "Access the live map to find reported issues in your area and start resolving them."
               : "CivicLens turns your neighborhood concerns into action using AI-verified reporting."}
           </p>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-4 justify-center lg:justify-start">
             <button
               onClick={handleActionClick}
-              className="px-8 py-4 rounded-xl font-bold text-white flex items-center gap-2 shadow-lg hover:brightness-110 transition transform hover:-translate-y-1 cursor-pointer"
+              className="w-full sm:w-auto px-8 py-4 rounded-xl font-bold text-white flex items-center justify-center gap-2 shadow-lg hover:brightness-110 transition transform hover:-translate-y-1 cursor-pointer"
               style={{ backgroundColor: themeColor }}
             >
               {isFixer ? (
@@ -178,11 +175,10 @@ export default function Home() {
               )}
             </button>
 
-            {/* ONLY SHOW HEATMAP BUTTON FOR CITIZENS/GUESTS */}
             {!isFixer && (
               <button
                 onClick={() => navigate("/map")}
-                className="px-8 py-4 rounded-xl font-bold border-2 border-gray-200 bg-white/50 transition backdrop-blur-sm cursor-pointer hover:bg-gray-50"
+                className="w-full sm:w-auto px-8 py-4 rounded-xl font-bold border-2 border-gray-200 bg-white/50 transition backdrop-blur-sm cursor-pointer hover:bg-gray-50"
               >
                 View Heatmap
               </button>
@@ -191,8 +187,8 @@ export default function Home() {
         </div>
 
         {/* Map Preview */}
-        <div className="flex justify-center relative">
-          <div className="w-full max-w-md h-[400px] bg-white/40 backdrop-blur-md rounded-3xl border-8 border-white shadow-xl overflow-hidden animate-main-float relative z-20">
+        <div className="flex justify-center relative w-full">
+          <div className="w-full max-w-md h-[300px] md:h-[400px] bg-white/40 backdrop-blur-md rounded-3xl border-4 md:border-8 border-white shadow-xl overflow-hidden animate-main-float relative z-20">
             <MapContainer
               center={defaultCenter}
               zoom={14}
@@ -226,8 +222,8 @@ export default function Home() {
       </section>
 
       {/* Steps Section */}
-      <section className="py-24 px-10 max-w-7xl mx-auto relative z-10">
-        <div className="text-center mb-16">
+      <section className="py-16 md:py-24 px-6 md:px-10 max-w-7xl mx-auto relative z-10">
+        <div className="text-center mb-12 md:text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             {isFixer ? "Your Repair Workflow" : "How it Works"}
           </h2>
@@ -238,14 +234,14 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
           {currentSteps.map((step, i) => (
             <div
               key={i}
               className="flex flex-col items-center text-center group"
             >
               <div
-                className="w-28 h-28 rounded-2xl flex items-center justify-center mb-6 shadow-inner border border-white transition-transform group-hover:scale-105"
+                className="w-24 h-24 md:w-28 md:h-28 rounded-2xl flex items-center justify-center mb-6 shadow-inner border border-white transition-transform group-hover:scale-105"
                 style={{
                   backgroundColor: themeColorLowOpacity,
                   color: themeColor,
@@ -253,7 +249,9 @@ export default function Home() {
               >
                 {step.icon}
               </div>
-              <h3 className="text-xl font-bold mb-2">{step.title}</h3>
+              <h3 className="text-lg md:text-xl font-bold mb-2">
+                {step.title}
+              </h3>
               <p className="text-gray-500 text-sm px-4">{step.desc}</p>
             </div>
           ))}
